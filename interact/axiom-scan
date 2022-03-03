@@ -82,6 +82,8 @@ function help(){
         echo -e "    Local wordlist to upload and use with axiom-scan (must be a path to a local wordlist)"
         echo -e "  -wD/--distribute-wordlist (optional, depends on -wL)"
         echo -e "    When using -wL, split and upload local wordlist (default is to not split the wordlist)"
+        echo -e "  -fL/--local-folder (optional, depends on -wL)"
+        echo -e "    When using -wL, supply a local folder instead of a wordlist (default is wordlist)"
         echo -e "  -w /path/to/wordlist/on/instance"
         echo -e "    Wordlist to use for axiom-scan (must be a path to a remote wordlist)"
         echo -e "  -o string"
@@ -354,6 +356,7 @@ shuffle="true"
 split="true"
 distribute_wordlist="false"
 quiet="false"
+upload_folder="false"
 
 ###########################################################################################################
 #  Parse command line arguments 
@@ -447,6 +450,11 @@ do
         fi
         if [[ "$arg" == "--distribute-wordlist" ]] || [[ "$arg" == "-wD" ]]; then
             distribute_wordlist="true"
+            set=true
+            pass+=($i)
+        fi
+        if [[ "$arg" == "--local-folder" ]] || [[ "$arg" == "-fl" ]] || [[ "$arg" == "-FL" ]] || [[ "$arg" == "-fL" ]] || [[ "$arg" == "-Fl" ]]; then
+            upload_folder="true"
             set=true
             pass+=($i)
         fi
@@ -707,7 +715,7 @@ fi
 
 destination_wordlist=""
 if [[ "$local_wordlist" != "" ]]; then
-    if [[ -f "$local_wordlist" ]]; then
+    if [[ -f "$local_wordlist" ]] || [[ "$upload_folder" == "true" ]]; then
         local_wordlist_filename="$(echo "$local_wordlist" | tr '/' ' ' | awk '{ print $NF }')"
         total=$(wc -l "$tmp/selected.conf" | awk '{ print $1 }')
         destination_wordlist="/home/op/lists/$local_wordlist_filename"
@@ -722,7 +730,7 @@ fi
 #  If -wL (wordlist-local) is present in the command line, upload a user provider wordlist to use.
 #  If -wD or --distribute-wordlist is present in the command line, split and upload the user provided wordlist.
 #
-if [[ -f "$local_wordlist" ]]; then
+if [[ -f "$local_wordlist" ]]|| [[ "$upload_folder" == "true" ]]; then
 if [[ "$distribute_wordlist" == "false" ]]; then
     echo -e "${Green}Uploading local wordlist: $local_wordlist_filename to $destination_wordlist...${Color_Off}"
     interlace --no-bar --silent -threads $total -tL "$tmp/selected.conf" -c "$AXIOM_PATH/interact/axiom-scp $local_wordlist  _target_:$destination_wordlist --cache -F=$sshconfig >> /dev/null"
